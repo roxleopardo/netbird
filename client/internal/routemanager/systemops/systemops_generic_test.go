@@ -15,7 +15,6 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/netbirdio/netbird/client/internal/profilemanager"
 	"github.com/netbirdio/netbird/client/internal/stdnet"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -431,13 +430,21 @@ func TestGetNextHop(t *testing.T) {
 	}
 }
 
+// testIFaceBlackList mirrors profilemanager.DefaultInterfaceBlacklist. Declared here
+// rather than imported because profilemanager reaches client/internal/dns, which
+// imports this package on darwin, and the import would form a cycle in this test.
+var testIFaceBlackList = []string{
+	iface.WgInterfaceDefault, "wt", "utun", "tun0", "zt", "ZeroTier", "wg", "ts",
+	"Tailscale", "tailscale", "docker", "veth", "br-", "lo",
+}
+
 func createWGInterface(t *testing.T, interfaceName, ipAddressCIDR string, listenPort int) *iface.WGIface {
 	t.Helper()
 
 	peerPrivateKey, err := wgtypes.GeneratePrivateKey()
 	require.NoError(t, err)
 
-	newNet := stdnet.NewNet(context.Background(), profilemanager.DefaultInterfaceBlacklist, nil)
+	newNet := stdnet.NewNet(context.Background(), testIFaceBlackList, nil)
 
 	opts := iface.WGIFaceOpts{
 		IFaceName:    interfaceName,

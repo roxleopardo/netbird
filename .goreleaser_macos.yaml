@@ -1,0 +1,56 @@
+version: 2
+
+# Builds only the macOS client/daemon with the AAAA fix from
+# domysh/netbird@macos-exit-node-aaaa merged on top of upstream main.
+project_name: netbird
+
+builds:
+  - id: netbird
+    dir: client
+    binary: netbird
+    env: [CGO_ENABLED=0]
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X github.com/netbirdio/netbird/version.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.CommitDate}} -X main.builtBy=goreleaser
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+universal_binaries:
+  - id: netbird
+    replace: false
+
+archives:
+  - ids:
+      - netbird
+    files:
+      - LICENSE
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_darwin_checksums.txt"
+
+changelog:
+  disable: true
+
+release:
+  prerelease: false
+  make_latest: true
+  header: |
+    NetBird client for macOS built from upstream `netbirdio/netbird` main with the
+    IPv6 exit node AAAA fix from `domysh/netbird@macos-exit-node-aaaa` merged in.
+    Commit: `{{ .FullCommit }}`
+
+    The binaries are **not** signed or notarized by Apple.
+
+    Install (`arm64` = Apple Silicon, `amd64` = Intel, `all` = universal):
+    ```sh
+    tar -xzf netbird_{{ .Version }}_darwin_arm64.tar.gz
+    xattr -d com.apple.quarantine netbird 2>/dev/null || true
+    sudo netbird service stop 2>/dev/null || true
+    sudo install -m 0755 netbird /usr/local/bin/netbird
+    sudo netbird service install 2>/dev/null || true
+    sudo netbird service start
+    netbird version
+    ```
